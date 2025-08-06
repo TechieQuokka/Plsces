@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "새 프로필",
+    "Projects": [
+      {
+        "Path": "Pisces.Server\\Pisces.Server.vcxproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Pisces.Client\\Pisces.Client.vcxproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

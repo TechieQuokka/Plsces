@@ -1,6 +1,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include "common_headers.h"
 #include "protocol.h"
 #include "message.h"
 #include "network.h"

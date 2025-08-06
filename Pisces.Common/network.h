@@ -1,9 +1,10 @@
+// network.h
 #ifndef NETWORK_H
 #define NETWORK_H
 
-#include "protocol.h"
+#include "common_headers.h"  // Windows + 표준 헤더
+#include "protocol.h"        // 프로토콜 정의
 #include "message.h"
-#include <stdint.h>
 
 // =============================================================================
 // 네트워크 상수 정의
