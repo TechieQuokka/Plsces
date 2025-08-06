@@ -1,22 +1,26 @@
-# Visual Studio files
+# Visual Studio
 .vs/
+x64/
+Debug/
+Release/
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
 *.sln
 
-# Object files
-*.o
-*.obj
-
-# Executables
+# Build outputs
 *.exe
-*.out
-
-# Debug files
+*.obj
+*.lib
+*.dll
 *.pdb
-*.ilk
+*.idb
+*.tlog
+*.log
+*.recipe
+*.pch
+*.lastbuildstate
 
-# OS generated files
+# OS
 .DS_Store
 Thumbs.db
