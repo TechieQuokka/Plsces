@@ -1,0 +1,22 @@
+# Visual Studio files
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# Object files
+*.o
+*.obj
+
+# Executables
+*.exe
+*.out
+
+# Debug files
+*.pdb
+*.ilk
+
+# OS generated files
+.DS_Store
+Thumbs.db
