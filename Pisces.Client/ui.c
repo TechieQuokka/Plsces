@@ -40,7 +40,8 @@ int client_ui_initialize(chat_client_t* client) {
         return -1;
     }
 
-    // 콘솔 모드 설정 (입력 처리를 위해)
+    // 콘솔 모드 설정 부분을 주석 처리!
+    /*
     HANDLE input_handle = GetStdHandle(STD_INPUT_HANDLE);
     DWORD console_mode;
     if (GetConsoleMode(input_handle, &console_mode)) {
@@ -48,6 +49,7 @@ int client_ui_initialize(chat_client_t* client) {
         console_mode &= ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT);
         SetConsoleMode(input_handle, console_mode);
     }
+    */
 
     // 화면 초기화
     ui_clear_screen();
@@ -755,6 +757,17 @@ int ui_process_user_input(chat_client_t* client, const char* input) {
         return 0;
     }
 
+    // 디버그 로그 추가
+    LOG_INFO("Processing user input: %s", input);
+
     // 기존 client_ui_handle_input 함수 그대로 사용
-    return client_ui_handle_input(client, input);
+    int result = client_ui_handle_input(client, input);
+
+    // 강제 화면 새로고침 추가!
+    if (g_ui_state) {
+        g_ui_state->need_refresh = 1;
+        ui_refresh_screen(client, g_ui_state);
+    }
+
+    return result;
 }
