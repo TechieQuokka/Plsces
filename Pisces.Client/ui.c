@@ -748,3 +748,13 @@ int ui_kbhit(void) {
 int ui_getch(void) {
     return _getch();
 }
+
+// 콜백에서 호출할 함수
+int ui_process_user_input(chat_client_t* client, const char* input) {
+    if (!client || !input || strlen(input) == 0) {
+        return 0;
+    }
+
+    // 기존 client_ui_handle_input 함수 그대로 사용
+    return client_ui_handle_input(client, input);
+}

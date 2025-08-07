@@ -178,6 +178,9 @@ chat_client_t* client_create(const client_config_t* config) {
     // 통계 초기화
     memset(&client->stats, 0, sizeof(client_statistics_t));
 
+    client->input_handler = NULL;
+    client->input_handler_data = NULL;
+
     LOG_INFO("Client instance created successfully");
     LOG_INFO("Configuration: server=%s:%d, auto_reconnect=%s, queue_size=%d",
         client->config.server_host,
@@ -616,42 +619,42 @@ int client_run(chat_client_t* client) {
     while (!client->should_shutdown) {
         // 네트워크 이벤트 처리
         network_event_t event;
-        int event_result = event_queue_pop(client->event_queue, &event, 100);  // 100ms 타임아웃
+        int event_result = event_queue_pop(client->event_queue, &event, 100);
 
         if (event_result == 0) {
-            // 이벤트가 있음 - UI에 표시
             client_ui_display_event(client, &event);
         }
         else if (event_result == -2) {
-            // 타임아웃 - 정상적인 상황, 사용자 입력 체크
+            // 타임아웃 - 정상적인 상황
         }
         else {
-            // 오류 또는 큐 비어있음
-            Sleep(10);  // 짧은 대기
+            Sleep(10);
         }
 
-        // 사용자 입력 처리 (논블로킹)
-        // 실제 구현은 ui.c에서 처리
+        // 사용자 입력 처리 - 콜백 호출 (새로 추가)
+        if (client->input_handler) {
+            int input_result = client->input_handler(client, client->input_handler_data);
+            if (input_result < 0) {
+                LOG_WARNING("Input handler returned error, continuing...");
+                // 입력 오류가 있어도 계속 실행 (선택사항)
+            }
+        }
 
-        // 주기적인 상태 체크 (1초마다)
+        // 주기적인 상태 체크 (기존과 동일)
         static time_t last_status_check = 0;
         time_t current_time = time(NULL);
 
         if (current_time - last_status_check >= 1) {
-            // 연결 상태 체크
             if (client_is_connected(client)) {
-                // 하트비트 타임아웃 체크
                 if (current_time - client->last_heartbeat > client->config.heartbeat_timeout) {
                     LOG_WARNING("Heartbeat timeout detected");
                     client_set_last_error(client, "Heartbeat timeout");
 
-                    // 연결 끊김으로 처리
                     ui_command_t disconnect_cmd = { 0 };
                     disconnect_cmd.type = UI_CMD_DISCONNECT;
                     command_queue_push(client->command_queue, &disconnect_cmd);
                 }
             }
-
             last_status_check = current_time;
         }
 
@@ -1350,6 +1353,16 @@ static void client_handle_connection_lost(chat_client_t* client, const char* rea
 
         event_queue_push(client->event_queue, &reconnect_event);
     }
+}
+
+void client_set_input_handler(chat_client_t* client, client_input_handler_t handler, void* user_data) {
+    
+    if (!client) return;
+
+    client->input_handler = handler;
+    client->input_handler_data = user_data;
+
+    LOG_DEBUG("Input handler %s", handler ? "registered" : "unregistered");
 }
 
 // =============================================================================

@@ -10,6 +10,11 @@
 #include <time.h>
 
 // =============================================================================
+// 전방 선언
+// =============================================================================
+typedef struct chat_client_s chat_client_t;
+
+// =============================================================================
 // 클라이언트 상수 정의
 // =============================================================================
 
@@ -156,7 +161,9 @@ typedef struct {
 // 메인 클라이언트 구조체
 // =============================================================================
 
-typedef struct {
+typedef int (*client_input_handler_t)(chat_client_t* client, void* user_data);
+
+typedef struct chat_client_s {
     // 클라이언트 상태
     client_state_t current_state;      // 현재 상태
     client_config_t config;            // 설정
@@ -185,6 +192,9 @@ typedef struct {
 
     // 통계
     client_statistics_t stats;         // 클라이언트 통계
+
+    client_input_handler_t input_handler;
+    void* input_handler_data;
 } chat_client_t;
 
 // =============================================================================
@@ -478,5 +488,7 @@ int client_ui_handle_input(chat_client_t* client, const char* input);
  * @param event 출력할 이벤트
  */
 void client_ui_display_event(chat_client_t* client, const network_event_t* event);
+
+void client_set_input_handler(chat_client_t* client, client_input_handler_t handler, void* user_data);
 
 #endif // CLIENT_H

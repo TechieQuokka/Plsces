@@ -52,6 +52,32 @@ static void client_signal_handler(int signum);
 // 메인 함수
 // =============================================================================
 
+static int handle_user_input(chat_client_t* client, void* user_data) {
+    // 논블로킹 키보드 입력 체크
+    if (_kbhit()) {
+        char input_buffer[512];
+
+        // 한 줄 입력 받기
+        if (fgets(input_buffer, sizeof(input_buffer), stdin)) {
+            // 개행 문자 제거
+            size_t len = strlen(input_buffer);
+            if (len > 0 && input_buffer[len - 1] == '\n') {
+                input_buffer[len - 1] = '\0';
+            }
+
+            // 빈 입력 무시
+            if (strlen(input_buffer) == 0) {
+                return 0;
+            }
+
+            // 명령어 처리 (ui.c의 함수 호출)
+            return ui_process_user_input(client, input_buffer);
+        }
+    }
+
+    return 0; // 입력 없음 또는 정상 처리
+}
+
 int main(int argc, char* argv[]) {
     // 명령줄 인수 파싱
     client_args_t args = { 0 };
@@ -94,6 +120,9 @@ int main(int argc, char* argv[]) {
         cleanup_and_exit_client(EXIT_FAILURE);
     }
 
+    // 입력 핸들러 등록
+    client_set_input_handler(g_client, handle_user_input, NULL);
+
     // 자동 연결 처리
     if (args.auto_connect && !utils_string_is_empty(args.server_host)) {
         LOG_INFO("Auto-connecting to %s:%d", args.server_host, args.server_port);
@@ -108,6 +137,9 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+
+    LOG_INFO("Starting user interface...");
+    LOG_INFO("");
 
     // 클라이언트 정보 출력
     LOG_INFO("=================================================");
