@@ -989,10 +989,9 @@ int client_authenticate(chat_client_t* client, const char* username) {
     // 사용자명 저장
     utils_string_copy(client->config.username, sizeof(client->config.username), username);
 
-    // 인증 명령을 네트워크 스레드에 전송 (실제 네트워크 처리는 network_thread에서)
-    // 여기서는 UI 명령만 큐에 추가
+    // 인증 명령을 네트워크 스레드에 전송
     ui_command_t auth_cmd = { 0 };
-    auth_cmd.type = UI_CMD_CONNECT;  // 연결 과정의 일부로 처리
+    auth_cmd.type = UI_CMD_AUTHENTICATE;
     utils_string_copy(auth_cmd.data, sizeof(auth_cmd.data), username);
 
     if (command_queue_push(client->command_queue, &auth_cmd) != 0) {

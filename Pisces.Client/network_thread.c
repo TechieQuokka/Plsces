@@ -419,10 +419,12 @@ static int network_thread_process_ui_command(chat_client_t* client, const ui_com
                 return network_thread_connect_to_server(client, host, port);
             }
         }
-        else if (state == CLIENT_STATE_CONNECTED) {
-            // 인증 요청
-            return network_thread_send_auth_request(client, command->data);
-        }
+    }
+    break;
+
+    case UI_CMD_AUTHENTICATE:
+    {
+        return network_thread_send_auth_request(client, command->data);
     }
     break;
 

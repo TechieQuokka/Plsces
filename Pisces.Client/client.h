@@ -90,6 +90,7 @@ typedef struct {
 // UI → Network 스레드 메시지
 typedef enum {
     UI_CMD_CONNECT,                     // 서버 연결
+    UI_CMD_AUTHENTICATE,
     UI_CMD_DISCONNECT,                  // 연결 해제
     UI_CMD_SEND_CHAT,                   // 채팅 메시지 전송
     UI_CMD_REQUEST_USER_LIST,           // 사용자 목록 요청
