@@ -557,8 +557,27 @@ int client_shutdown(chat_client_t* client) {
         DWORD wait_result = WaitForSingleObject(client->network_thread, 10000);
 
         if (wait_result == WAIT_TIMEOUT) {
-            LOG_WARNING("Network thread did not terminate gracefully, forcing termination");
-            TerminateThread(client->network_thread, 1);
+            LOG_WARNING("Network thread did not terminate gracefully within timeout");
+
+            // TerminateThread 대신 더 강력한 종료 신호 전송
+            // 추가 종료 시도
+            for (int retry = 0; retry < 3 && wait_result == WAIT_TIMEOUT; retry++) {
+                LOG_WARNING("Attempting forced shutdown, retry %d/3", retry + 1);
+
+                // 소켓을 강제로 닫아서 블로킹된 네트워크 작업 해제
+                if (client->server_socket) {
+                    network_socket_close(client->server_socket);
+                }
+
+                // 추가 대기
+                wait_result = WaitForSingleObject(client->network_thread, 2000);
+            }
+
+            if (wait_result == WAIT_TIMEOUT) {
+                LOG_ERROR("Network thread failed to terminate gracefully");
+                // TerminateThread는 위험하므로 사용하지 않고 핸들만 정리
+                // 프로세스 종료 시 시스템이 스레드를 정리함
+            }
         }
 
         CloseHandle(client->network_thread);

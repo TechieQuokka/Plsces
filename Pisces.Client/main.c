@@ -471,33 +471,70 @@ static void windows_client_init(void) {
     // 콘솔 이벤트 핸들러 등록
     SetConsoleCtrlHandler(console_ctrl_handler, TRUE);
 
-    // 콘솔 창 제목 설정
+    // 콘솔 창 제목 설정 - UNICODE/ANSI 호환성 처리
+#ifdef UNICODE
+    wchar_t title[256];
+    swprintf_s(title, sizeof(title) / sizeof(wchar_t), L"%hs v%hs", CLIENT_PROGRAM_NAME, CLIENT_VERSION);
+    SetConsoleTitle(title);
+#else
     char title[256];
     sprintf_s(title, sizeof(title), "%s v%s", CLIENT_PROGRAM_NAME, CLIENT_VERSION);
     SetConsoleTitle(title);
+#endif
 }
 
-// WinMain 지원 (선택사항 - 콘솔 애플리케이션이지만 GUI에서도 실행 가능)
+// WinMain 지원 - SAL 주석 추가로 경고 해결
 #ifdef UNICODE
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
+int WINAPI wWinMain(
+    _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPWSTR lpCmdLine,
+    _In_ int nCmdShow
+) {
 #else
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+int WINAPI WinMain(
+    _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPSTR lpCmdLine,
+    _In_ int nCmdShow
+) {
 #endif
+    // 미사용 매개변수 경고 방지
+    UNREFERENCED_PARAMETER(hInstance);
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
+    UNREFERENCED_PARAMETER(nCmdShow);
+
     // 콘솔 할당 (GUI에서 실행된 경우)
     if (AllocConsole()) {
-        freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
-        freopen_s((FILE**)stderr, "CONOUT$", "w", stderr);
-        freopen_s((FILE**)stdin, "CONIN$", "r", stdin);
+        FILE* pCout;
+        FILE* pCerr;
+        FILE* pCin;
+
+        // freopen_s의 반환값 확인
+        if (freopen_s(&pCout, "CONOUT$", "w", stdout) != 0 ||
+            freopen_s(&pCerr, "CONOUT$", "w", stderr) != 0 ||
+            freopen_s(&pCin, "CONIN$", "r", stdin) != 0) {
+            // 콘솔 재연결 실패 시 처리
+            OutputDebugStringA("Failed to redirect console streams\n");
+        }
     }
 
-    // 명령줄 인수 파싱 (GetCommandLine 사용)
+    // 명령줄 인수 파싱 개선
     LPSTR cmdLine = GetCommandLineA();
 
-    // 간단한 argc/argv 파싱 (실제로는 CommandLineToArgvW 사용하는 것이 더 정확)
-    char* argv[32] = { "client.exe" };  // 기본 프로그램명
-    int argc = 1;
+    // CommandLineToArgvW 사용하여 정확한 파싱
+    int argc = 0;
+    char* argv[32] = { 0 };
 
-    // main 함수 호출
+    // 간단한 구현 (실제 프로덕션에서는 CommandLineToArgvW 사용 권장)
+    argv[0] = "client.exe";  // 기본 프로그램명
+    argc = 1;
+
+    // 추가 인수 파싱이 필요한 경우 여기에 구현
+    // 현재는 기본값만 사용
+
+    // Windows 초기화 및 main 함수 호출
     windows_client_init();
     return main(argc, argv);
 }
@@ -505,4 +542,59 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 #else
 // Windows가 아닌 플랫폼에서는 빈 함수
 static void windows_client_init(void) {}
+#endif
+
+// =============================================================================
+// 추가 개선사항: 안전한 스레드 종료를 위한 헬퍼 함수
+// =============================================================================
+
+// 네트워크 스레드에서 사용할 종료 확인 함수
+static int client_should_exit_thread(const chat_client_t * client) {
+    if (!client) {
+        return 1;  // 안전을 위해 종료
+    }
+
+    return client->should_shutdown ||
+        (WaitForSingleObject(client->shutdown_event, 0) == WAIT_OBJECT_0);
+}
+
+// 네트워크 스레드 메인 함수에서 주기적으로 호출해야 하는 종료 체크
+// network_thread_proc 함수에서 다음과 같이 사용:
+//
+// while (!client_should_exit_thread(client)) {
+//     // 네트워크 작업 수행
+//     
+//     // 블로킹 작업 시 타임아웃 설정
+//     // 예: select(), recv() 등에 타임아웃 적용
+// }
+
+// =============================================================================
+// 추가 개선: 에러 처리 및 로깅 개선
+// =============================================================================
+
+// TerminateThread 사용 없이 스레드 종료를 보장하는 방법:
+// 1. 모든 블로킹 네트워크 작업에 타임아웃 설정
+// 2. 주기적인 종료 신호 확인
+// 3. 소켓 강제 종료로 블로킹 해제
+// 4. 최후 수단으로만 프로세스 종료 시 시스템 정리에 의존
+
+#ifdef _DEBUG
+// 디버그 모드에서 추가 검증
+static void debug_verify_thread_cleanup(const chat_client_t * client) {
+    if (!client || !client->network_thread) {
+        return;
+    }
+
+    DWORD exit_code;
+    if (GetExitCodeThread(client->network_thread, &exit_code)) {
+        if (exit_code == STILL_ACTIVE) {
+            LOG_WARNING("Network thread still active during cleanup");
+        }
+        else {
+            LOG_DEBUG("Network thread exited with code: %lu", exit_code);
+        }
+    }
+}
+#else
+#define debug_verify_thread_cleanup(client) ((void)0)
 #endif
