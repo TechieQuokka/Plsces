@@ -5,10 +5,6 @@
       {
         "Path": "Pisces.Server\\Pisces.Server.vcxproj",
         "Action": "Start"
-      },
-      {
-        "Path": "Pisces.Client\\Pisces.Client.vcxproj",
-        "Action": "Start"
       }
     ]
   }

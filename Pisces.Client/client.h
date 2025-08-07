@@ -22,7 +22,7 @@ typedef struct chat_client_s chat_client_t;
 #define DEFAULT_SERVER_HOST         "localhost"
 #define DEFAULT_SERVER_PORT         8080        // 기본 서버 포트
 #define CLIENT_RECONNECT_INTERVAL   5           // 재연결 간격 (초)
-#define CLIENT_HEARTBEAT_TIMEOUT    30          // 하트비트 타임아웃 (초)
+#define CLIENT_HEARTBEAT_TIMEOUT    120          // 하트비트 타임아웃 (초)
 #define CLIENT_CONNECT_TIMEOUT      10          // 연결 타임아웃 (초)
 #define MAX_MESSAGE_QUEUE_SIZE      100         // 메시지 큐 최대 크기
 #define MAX_COMMAND_LENGTH          256         // 명령어 최대 길이
@@ -491,5 +491,17 @@ int client_ui_handle_input(chat_client_t* client, const char* input);
 void client_ui_display_event(chat_client_t* client, const network_event_t* event);
 
 void client_set_input_handler(chat_client_t* client, client_input_handler_t handler, void* user_data);
+
+// =============================================================================
+// 클라이언트 알림 함수들
+// =============================================================================
+
+void client_notify_connection_result(chat_client_t* client, int success, const char* error_message);
+void client_notify_auth_result(chat_client_t* client, int success, const char* message);
+void client_notify_chat_received(chat_client_t* client, const char* username, const char* message, time_t timestamp);
+void client_notify_user_list(chat_client_t* client, const char* user_list);
+void client_notify_user_joined(chat_client_t* client, const char* username);
+void client_notify_user_left(chat_client_t* client, const char* username);
+void client_notify_connection_lost(chat_client_t* client, const char* reason);
 
 #endif // CLIENT_H

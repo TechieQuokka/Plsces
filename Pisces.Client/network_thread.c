@@ -304,12 +304,15 @@ static int network_thread_handle_incoming_message(chat_client_t* client, message
     case MSG_USER_LIST_RESPONSE:
     {
         uint32_t payload_size = ntohl(message->header.payload_size);
+        LOG_INFO("Received user list response, payload size: %d", payload_size);
+
         if (payload_size > 0) {
             char* user_list = (char*)malloc(payload_size + 1);
             if (user_list) {
                 memcpy(user_list, message->payload, payload_size);
                 user_list[payload_size] = '\0';
 
+                LOG_INFO("User list content: %s", user_list);
                 client_notify_user_list(client, user_list);
                 free(user_list);
             }
